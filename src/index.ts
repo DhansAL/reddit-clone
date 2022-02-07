@@ -10,17 +10,20 @@ import { PostResolver } from "./resolvers/post";
 import { UserResolver } from "./resolvers/user";
 
 //redis
-import redis from "redis";
 import session from "express-session";
-import connectRedis from "connect-redis";
+import { MyContext } from "./types";
+const { createClient } = require("redis");
 
 const main = async () => {
   const orm = await MikroORM.init(mikroOrmConfig);
   await orm.getMigrator().up();
 
+  // redis@v4
+  let RedisStore = require("connect-redis")(session);
+  let redisClient = createClient({ legacyMode: true });
+  redisClient.connect().catch(console.error);
+
   const app = express();
-  const RedisStore = connectRedis(session);
-  const redisClient = redis.createClient();
 
   //redis should be used before middleware
   // session middleware should be running before apollo middleware
@@ -31,8 +34,14 @@ const main = async () => {
         client: redisClient,
         disableTouch: true,
       }),
+      cookie: {
+        maxAge: 1000 * 60 * 60 * 24 * 365 * 10, //10years
+        httpOnly: true,
+        secure: __prod__,
+        sameSite: "lax",
+      },
       saveUninitialized: false,
-      secret: "keyboard cat",
+      secret: "344433",
       resave: false,
     })
   );
@@ -42,8 +51,11 @@ const main = async () => {
       resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
-    context: () => ({ em: orm.em }),
+    //what obj is req from?
+    //@ts-expect-error
+    context: ({ req, res }): MyContext => ({ em: orm.em, req, res }),
   });
+
   await apolloServer.start();
   apolloServer.applyMiddleware({ app });
 
