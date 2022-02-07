@@ -9,11 +9,34 @@ import { HelloResolver } from "./resolvers/hello";
 import { PostResolver } from "./resolvers/post";
 import { UserResolver } from "./resolvers/user";
 
+//redis
+import redis from "redis";
+import session from "express-session";
+import connectRedis from "connect-redis";
+
 const main = async () => {
   const orm = await MikroORM.init(mikroOrmConfig);
   await orm.getMigrator().up();
 
   const app = express();
+  const RedisStore = connectRedis(session);
+  const redisClient = redis.createClient();
+
+  //redis should be used before middleware
+  // session middleware should be running before apollo middleware
+  app.use(
+    session({
+      name: "qid",
+      store: new RedisStore({
+        client: redisClient,
+        disableTouch: true,
+      }),
+      saveUninitialized: false,
+      secret: "keyboard cat",
+      resave: false,
+    })
+  );
+
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
       resolvers: [HelloResolver, PostResolver, UserResolver],
