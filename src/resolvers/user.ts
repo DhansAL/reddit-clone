@@ -53,6 +53,12 @@ export class UserResolver {
     return user;
   }
 
+  @Mutation(() => Boolean)
+  async forgotPassword(@Arg("email") email: string, @Ctx() { em }: MyContext) {
+    // const user  = await em.findOne(User,{})
+    return true;
+  }
+
   @Mutation(() => UserResponse)
   async register(
     @Arg("options") options: UsernamePasswordInput,
