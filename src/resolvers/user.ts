@@ -11,6 +11,8 @@ import {
   Resolver,
 } from "type-graphql";
 import argon2 from "argon2";
+import { EntityManager } from "@mikro-orm/postgresql";
+import { COOKIE_NAME } from "../constants";
 //instead of having multiple args have one input type
 @InputType()
 class UsernamePasswordInput {
@@ -78,13 +80,20 @@ export class UserResolver {
     }
 
     const hashedPasword = await argon2.hash(options.password);
-    const user = em.create(User, {
-      username: options.username,
-      password: hashedPasword,
-    });
+    let user;
 
     try {
-      await em.persistAndFlush(user);
+      const result = await (em as EntityManager)
+        .createQueryBuilder(User)
+        .getKnexQuery()
+        .insert({
+          username: options.username,
+          password: hashedPasword,
+          created_At: new Date(),
+          updated_At: new Date(),
+        })
+        .returning("*");
+      user = result[0];
     } catch (error) {
       if (error.code === "23505") {
         //duplicate username error
@@ -138,5 +147,20 @@ export class UserResolver {
     return {
       user,
     };
+  }
+
+  @Mutation(() => Boolean)
+  logout(@Ctx() { req, res }: MyContext) {
+    return new Promise((resolve) =>
+      req.session.destroy((err) => {
+        res.clearCookie(COOKIE_NAME);
+        if (err) {
+          console.log(err);
+          resolve(false);
+          return;
+        }
+        resolve(true);
+      })
+    );
   }
 }
