@@ -14,7 +14,9 @@ import cors from "cors";
 import session from "express-session";
 import { MyContext } from "./types";
 // import { User } from "./entities/User";
-const { createClient } = require("redis");
+
+//ioredis
+import Redis from "ioredis";
 
 const main = async () => {
   const orm = await MikroORM.init(mikroOrmConfig);
@@ -23,8 +25,7 @@ const main = async () => {
 
   // redis@v4
   let RedisStore = require("connect-redis")(session);
-  let redisClient = createClient({ legacyMode: true });
-  redisClient.connect().catch(console.error);
+  let redis = new Redis();
 
   const app = express();
 
@@ -41,7 +42,7 @@ const main = async () => {
     session({
       name: COOKIE_NAME,
       store: new RedisStore({
-        client: redisClient,
+        client: redis,
         disableTouch: true,
       }),
       cookie: {
@@ -62,7 +63,7 @@ const main = async () => {
       validate: false,
     }),
     //what obj is req from?
-    context: ({ req, res }): MyContext => ({ em: orm.em, req, res }),
+    context: ({ req, res }): MyContext => ({ em: orm.em, req, res, redis }),
   });
 
   await apolloServer.start();
