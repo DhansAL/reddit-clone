@@ -13,11 +13,12 @@ import cors from "cors";
 //redis
 import session from "express-session";
 import { MyContext } from "./types";
-import { User } from "./entities/User";
+// import { User } from "./entities/User";
 const { createClient } = require("redis");
 
 const main = async () => {
   const orm = await MikroORM.init(mikroOrmConfig);
+  // await orm.em.nativeDelete(User, {}).then(() => console.log("done"));
   await orm.getMigrator().up();
 
   // redis@v4
