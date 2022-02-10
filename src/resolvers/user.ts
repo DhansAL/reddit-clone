@@ -48,14 +48,14 @@ export class UserResolver {
       return {
         errors: [
           {
-            field: "password",
+            field: "newPassword",
             message: "length must be greater than 2",
           },
         ],
       };
     }
-
-    const userId = await redis.get(FORGET_PASSWORD_PREFIX + token);
+    const key = FORGET_PASSWORD_PREFIX + token;
+    const userId = await redis.get(key);
     if (!userId) {
       return {
         errors: [
@@ -80,6 +80,7 @@ export class UserResolver {
     }
     user.password = await argon2.hash(newPassword);
     await em.persistAndFlush(user);
+    await redis.del(key);
     //@ts-expect-error
     req.session.userId = user.id;
     return { user };
@@ -102,6 +103,7 @@ export class UserResolver {
       "ex",
       1000 * 60 * 60 * 24 * 3
     ); //3days to expire token
+
     await sendEmail(
       email,
       `<a href="http://localhost:3000/change-password/${token}"> reset password</a>`
