@@ -1,6 +1,4 @@
-import { MikroORM } from "@mikro-orm/core";
 import "reflect-metadata";
-import mikroOrmConfig from "./mikro-orm.config";
 import { COOKIE_NAME, __prod__ } from "./constants";
 import express from "express";
 import { ApolloServer } from "apollo-server-express";
@@ -13,15 +11,27 @@ import cors from "cors";
 //redis
 import session from "express-session";
 import { MyContext } from "./types";
-// import { User } from "./entities/User";
-
-//ioredis
 import Redis from "ioredis";
 
+//ioredis
+import { createConnection } from "typeorm";
+import { Post } from "./entities/Post";
+import { User } from "./entities/User";
+
 const main = async () => {
-  const orm = await MikroORM.init(mikroOrmConfig);
-  // await orm.em.nativeDelete(User, {}).then(() => console.log("done"));
-  await orm.getMigrator().up();
+  const conn = await createConnection({
+    type: "postgres",
+    database: "redditdb2",
+    username: "dhans",
+    password: "12",
+    logging: true,
+    synchronize: true,
+    entities: [Post, User],
+  });
+
+  // const orm = await MikroORM.init(mikroOrmConfig);
+  // // await orm.em.nativeDelete(User, {}).then(() => console.log("done"));
+  // await orm.getMigrator().up();
 
   // redis@v4
   let RedisStore = require("connect-redis")(session);
@@ -63,7 +73,7 @@ const main = async () => {
       validate: false,
     }),
     //what obj is req from?
-    context: ({ req, res }): MyContext => ({ em: orm.em, req, res, redis }),
+    context: ({ req, res }): MyContext => ({ req, res, redis }),
   });
 
   await apolloServer.start();
