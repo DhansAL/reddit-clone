@@ -133,7 +133,6 @@ export class UserResolver {
     if (errors) {
       return { errors };
     }
-
     const hashedPassword = await argon2.hash(options.password);
     let user;
     try {
@@ -148,11 +147,8 @@ export class UserResolver {
         })
         .returning("*")
         .execute();
-
-      user = result.raw;
-      console.log("result", result);
+      user = result.raw[0];
     } catch (err) {
-      console.log(err);
       //|| err.detail.includes("already exists")) {
       // duplicate username error
       if (err.code === "23505") {

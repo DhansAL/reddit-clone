@@ -19,7 +19,7 @@ import { Post } from "./entities/Post";
 import { User } from "./entities/User";
 
 const main = async () => {
-  const conn = await createConnection({
+  await createConnection({
     type: "postgres",
     database: "redditdb2",
     username: "dhans",
