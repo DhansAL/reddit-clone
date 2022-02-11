@@ -29,6 +29,8 @@ const main = async () => {
     entities: [Post, User],
   });
 
+  // await Post.delete({});
+
   // const orm = await MikroORM.init(mikroOrmConfig);
   // // await orm.em.nativeDelete(User, {}).then(() => console.log("done"));
   // await orm.getMigrator().up();
