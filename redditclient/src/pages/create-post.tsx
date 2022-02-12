@@ -18,7 +18,7 @@ const createPost: React.FC = () => {
         if (!fetching && !data?.me) {
             router.replace("/login")
         }
-    }, [data, router])
+    }, [data, fetching, router])
 
     return (
         <Layout variant='small'>
