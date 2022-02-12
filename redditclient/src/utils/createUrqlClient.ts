@@ -10,6 +10,26 @@ import {
 } from "../generated/graphql";
 import { betterUpdateQuery } from "./betterUpdateQuery";
 
+import { pipe, tap } from "wonka";
+import { Exchange } from "urql";
+import { useRouter } from "next/router";
+
+const router = useRouter();
+const errorExchange: Exchange =
+  ({ forward }) =>
+  (ops$) => {
+    return pipe(
+      forward(ops$),
+      tap(({ error }) => {
+        if (error) {
+          if (error.message.includes("not authenticated")) {
+            router.replace("/login");
+          }
+        }
+      })
+    );
+  };
+
 export const createUrqlClient = (ssrExchange: any) => ({
   url: "http://localhost:2000/graphql",
   fetchOptions: {
@@ -64,6 +84,7 @@ export const createUrqlClient = (ssrExchange: any) => ({
         },
       },
     }),
+    errorExchange,
     ssrExchange,
     fetchExchange,
   ],
