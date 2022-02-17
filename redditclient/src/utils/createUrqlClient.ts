@@ -1,5 +1,5 @@
-import { dedupExchange, fetchExchange } from "urql";
-import { cacheExchange } from "@urql/exchange-graphcache";
+import { dedupExchange, fetchExchange, stringifyVariables } from "urql";
+import { cacheExchange, Resolver } from "@urql/exchange-graphcache";
 
 import {
   LogoutMutation,
@@ -29,6 +29,35 @@ const errorExchange: Exchange =
     );
   };
 
+export type MergeMode = "before" | "after";
+
+export interface PaginationParams {
+  offsetArgument?: string;
+  limitArgument?: string;
+  mergeMode?: MergeMode;
+}
+
+export const cursorPagination = (): Resolver => {
+  return (_parent, fieldArgs, cache, info) => {
+    const { parentKey: entityKey, fieldName } = info;
+    const allFields = cache.inspectFields(entityKey);
+
+    const fieldInfos = allFields.filter((info) => info.fieldName === fieldName);
+    const size = fieldInfos.length;
+    if (size === 0) {
+      return undefined;
+    }
+    const fieldKey = `${fieldName}(${stringifyVariables(fieldArgs)})`;
+    const isItInTheCache = cache.resolveFieldByKey(entityKey, fieldKey);
+    info.partial = !isItInTheCache;
+    const results: string[] = [];
+    fieldInfos.forEach((fi) => {
+      const data = cache.resolveFieldByKey(entityKey, fi.fieldKey) as string[];
+      results.push(...data);
+    });
+    return results;
+  };
+};
 export const createUrqlClient = (ssrExchange: any) => ({
   url: "http://localhost:2000/graphql",
   fetchOptions: {
@@ -37,6 +66,11 @@ export const createUrqlClient = (ssrExchange: any) => ({
   exchanges: [
     dedupExchange,
     cacheExchange({
+      resolvers: {
+        Query: {
+          posts: cursorPagination(),
+        },
+      },
       updates: {
         Mutation: {
           logout: (_result, args, cache, info) => {
